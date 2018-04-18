@@ -119,18 +119,25 @@ void ofApp::draw(){
     ofSetColor(ofColor::white);
     drawBox(boundingBox);
     
-    ofSetColor(ofColor::red);
-    for (int i=0; i < level1.size(); i++){
-        drawBox(level1[i]);
+    for(int i =0; i<subLevelBoxes.size(); i++){
+        ofSetColor(ofColor::red);
+        for (int j=0; j < subLevelBoxes[i].size(); j++){
+            drawBox(subLevelBoxes[i][j]);
+        }
     }
     
-    ofSetColor(ofColor::green);
-    for (int i = 0; i < level2.size(); i++)
-        drawBox(level2[i]);
-    
-    ofSetColor(ofColor::yellow);
-    for (int i = 0; i < level3.size(); i++)
-        drawBox(level3[i]);
+//    ofSetColor(ofColor::red);
+//    for (int i=0; i < level1.size(); i++){
+//        drawBox(level1[i]);
+//    }
+//    
+//    ofSetColor(ofColor::green);
+//    for (int i = 0; i < level2.size(); i++)
+//        drawBox(level2[i]);
+//    
+//    ofSetColor(ofColor::yellow);
+//    for (int i = 0; i < level3.size(); i++)
+//        drawBox(level3[i]);
     
     
     ofPopMatrix();
@@ -250,29 +257,11 @@ void ofApp::keyReleased(int key) {
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){
-    isDragged = true;
 }
 
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
-    ofVec3f mouse(mouseX, mouseY);
-    ofVec3f rayPoint = cam.screenToWorld(mouse);
-    ofVec3f rayDir = rayPoint - cam.getPosition();
-    rayDir.normalize();
-    Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
-                  Vector3(rayDir.x, rayDir.y, rayDir.z));
-    cout<<"Check if intersects"<<endl;
-    for(int i =0; i<8; i++){
-        if (level1[i].intersect(ray, -100, 100)){
-            cout << "\t Box "<<i+1<<" intersects" << endl;
-            cout<<"\tDistance to the box is :"<<checkBoxDistanceFromCenter(level1[i], ray)<<endl;
-        }
-        else{
-//            cout<<"\tBox "<<i+1<<" does not intersects"<<endl;
-        }
-    }
-    
 }
 
 
@@ -359,14 +348,86 @@ void ofApp::subDivideBox8(const Box &box, vector<Box> & boxList) {
 
 //--------------------------------------------------------------
 void ofApp::mouseDragged(int x, int y, int button) {
-    
-    
+    isDragged = true;
 }
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
+    if(!isDragged){
+        subLevelBoxes.clear();
+        ofVec3f mouse(mouseX, mouseY);
+        ofVec3f rayPoint = cam.screenToWorld(mouse);
+        ofVec3f rayDir = rayPoint - cam.getPosition();
+        rayDir.normalize();
+        Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
+                      Vector3(rayDir.x, rayDir.y, rayDir.z));
+        cout<<"Check if intersects"<<endl;
+        if(boundingBox.intersect(ray, -100, 100)){
+            cout << "\t Box intersects" << endl;
+            cout<<"\tDistance to the box is :"<<checkBoxDistanceFromCenter(boundingBox, ray)<<endl;
+            helperSubLevelBoundingBoxes(boundingBox, 0, ray);
+        }else
+            cout<<"\tBox does not intersects"<<endl;
+//        drawSubLevelBoxesWrapper(0);
+        
+    }
+    isDragged = false;
+}
+
+void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray){
+    //check the level, if it is more than the depth of what we are expecting then leave it
+    if(currentLevel>4)
+        return;
+    
+    //Create vector of sub boxes for the current level
+    vector<Box> boxList;
+    subDivideBox8(b, boxList);
+    subLevelBoxes.push_back(boxList);
+//    drawSubLevelBoxes(boxList);
+    int index = indexOfClosestBoundingBox(boxList, ray);
+    subLevelBoxIndexList.push_back(index);
+    helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray);
     
 }
+
+//Draw SubLevel Boxes
+void ofApp::drawSubLevelBoxesWrapper(int index){
+    for(int i=0; i<subLevelBoxes.size(); i++){
+        drawSubLevelBoxes(subLevelBoxes[i]);
+    }
+}
+
+
+// For any given sublevel draw all the boxes of that particular level.
+
+void ofApp::drawSubLevelBoxes(vector<Box> boxes){
+    ofSetColor(ofColor::green);
+    for(int i =0; i<boxes.size(); i++){
+        drawBox(boxes[i]);
+    }
+}
+
+// Find the bounding box that is closest for the given ray which intersects at a closest distance
+// Initially the max Distance to the closest box is set to maximum value of float,
+// if any box intersect the given ray, then the distance is checed with the current maximum distance
+// and smaller of the two distance is chosen as closestDistance.
+
+int ofApp::indexOfClosestBoundingBox(vector<Box> &boxList, Ray &ray){
+    float closestBoxDistance = numeric_limits<float>::max();
+    int indexOfMinDistaceBox = -1; // initially set to 1, which depicts that no index of the box is found;
+    for (int i=0; i<boxList.size(); i++) {
+        if(boxList[i].intersect(ray, -100, 100)){
+            float tempDistance = checkBoxDistanceFromCenter(boxList[i], ray);
+            if(tempDistance<closestBoxDistance){
+                closestBoxDistance = tempDistance;
+                indexOfMinDistaceBox = i;
+            }
+        }
+    }
+    return indexOfMinDistaceBox;
+}
+
+
 
 
 //

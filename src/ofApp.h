@@ -34,16 +34,20 @@ public:
     void drawBox(const Box &box);
     Box meshBounds(const ofMesh &);
     void subDivideBox8(const Box &b, vector<Box> & boxList);
-//    void checkBoxCollision(const Box &b, vector<Box> & boxList);
-    float checkBoxDistanceFromCenter(const Box &b, Ray &ray);
     bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f &point);
     
+    void drawSubLevelBoxes(vector<Box> boxes);
+    void helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray &ray);
+    int indexOfClosestBoundingBox(vector<Box> & boxList, Ray &ray);
+    float checkBoxDistanceFromCenter(const Box & b, Ray &ray);
+    void drawSubLevelBoxesWrapper(int index);
     ofEasyCam cam;
     ofxAssimpModelLoader mars, rover;
     ofLight light;
     Box boundingBox;
     vector<Box> level1, level2, level3;
     vector<vector<Box>> subLevelBoxes;
+    vector<int> subLevelBoxIndexList;
     
     bool bAltKeyDown;
     bool bCtrlKeyDown;
