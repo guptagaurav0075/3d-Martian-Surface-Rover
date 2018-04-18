@@ -36,11 +36,10 @@ public:
     void subDivideBox8(const Box &b, vector<Box> & boxList);
     bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f &point);
     
-    void drawSubLevelBoxes(vector<Box> boxes);
     void helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray &ray);
     int indexOfClosestBoundingBox(vector<Box> & boxList, Ray &ray);
     float checkBoxDistanceFromCenter(const Box & b, Ray &ray);
-    void drawSubLevelBoxesWrapper(int index);
+    
     ofEasyCam cam;
     ofxAssimpModelLoader mars, rover;
     ofLight light;

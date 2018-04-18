@@ -368,7 +368,6 @@ void ofApp::mouseReleased(int x, int y, int button) {
             helperSubLevelBoundingBoxes(boundingBox, 0, ray);
         }else
             cout<<"\tBox does not intersects"<<endl;
-//        drawSubLevelBoxesWrapper(0);
         
     }
     isDragged = false;
@@ -383,28 +382,10 @@ void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ra
     vector<Box> boxList;
     subDivideBox8(b, boxList);
     subLevelBoxes.push_back(boxList);
-//    drawSubLevelBoxes(boxList);
     int index = indexOfClosestBoundingBox(boxList, ray);
     subLevelBoxIndexList.push_back(index);
     helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray);
     
-}
-
-//Draw SubLevel Boxes
-void ofApp::drawSubLevelBoxesWrapper(int index){
-    for(int i=0; i<subLevelBoxes.size(); i++){
-        drawSubLevelBoxes(subLevelBoxes[i]);
-    }
-}
-
-
-// For any given sublevel draw all the boxes of that particular level.
-
-void ofApp::drawSubLevelBoxes(vector<Box> boxes){
-    ofSetColor(ofColor::green);
-    for(int i =0; i<boxes.size(); i++){
-        drawBox(boxes[i]);
-    }
 }
 
 // Find the bounding box that is closest for the given ray which intersects at a closest distance
