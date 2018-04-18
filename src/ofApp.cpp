@@ -56,13 +56,15 @@ void ofApp::setup(){
     mars.setScaleNormalization(false);
     
     boundingBox = meshBounds(mars.getMesh(0));
-    
     isDragged = false;
-    //  Test Box Subdivide
-    //
-    subDivideBox8(boundingBox, level1);
-    subDivideBox8(level1[0], level2);
-    subDivideBox8(level2[0], level3);
+    
+    
+    //Add colors to the vector
+    colors.push_back(ofColor::yellow);
+    colors.push_back(ofColor::green);
+    colors.push_back(ofColor::dimGrey);
+    colors.push_back(ofColor::indianRed);
+    colors.push_back(ofColor::skyBlue);
 }
 
 //--------------------------------------------------------------
@@ -73,10 +75,11 @@ void ofApp::update() {
 }
 //--------------------------------------------------------------
 void ofApp::draw(){
-    
+    uint64_t st = ofGetSystemTimeMicros();
     //    ofBackgroundGradient(ofColor(20), ofColor(0));   // pick your own background
     ofBackground(ofColor::black);
-    //    cout << ofGetFrameRate() << endl;
+//        cout << ofGetFrameRate() << endl;
+    
     
     cam.begin();
     ofPushMatrix();
@@ -118,30 +121,22 @@ void ofApp::draw(){
     ofNoFill();
     ofSetColor(ofColor::white);
     drawBox(boundingBox);
-    
+    int colorsSize = colors.size();
     for(int i =0; i<subLevelBoxes.size(); i++){
-        ofSetColor(ofColor::red);
+//        if(i%2==0)
+//            ofSetColor(ofColor::red);
+//        else
+//            ofSetColor(ofColor::green);
+        ofSetColor(colors[i%colorsSize]);
         for (int j=0; j < subLevelBoxes[i].size(); j++){
             drawBox(subLevelBoxes[i][j]);
         }
     }
     
-//    ofSetColor(ofColor::red);
-//    for (int i=0; i < level1.size(); i++){
-//        drawBox(level1[i]);
-//    }
-//    
-//    ofSetColor(ofColor::green);
-//    for (int i = 0; i < level2.size(); i++)
-//        drawBox(level2[i]);
-//    
-//    ofSetColor(ofColor::yellow);
-//    for (int i = 0; i < level3.size(); i++)
-//        drawBox(level3[i]);
-    
-    
     ofPopMatrix();
     cam.end();
+    uint64_t et = ofGetSystemTimeMicros();
+    cout<<"Time elapsed in entire draw function : "<<et-st<<endl;
 }
 
 //
@@ -262,6 +257,7 @@ void ofApp::mouseMoved(int x, int y ){
 
 //--------------------------------------------------------------
 void ofApp::mousePressed(int x, int y, int button) {
+    startTime = ofGetSystemTimeMicros();
 }
 
 
@@ -353,6 +349,9 @@ void ofApp::mouseDragged(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
+    
+    
+    
     if(!isDragged){
         subLevelBoxes.clear();
         ofVec3f mouse(mouseX, mouseY);
@@ -361,21 +360,25 @@ void ofApp::mouseReleased(int x, int y, int button) {
         rayDir.normalize();
         Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
                       Vector3(rayDir.x, rayDir.y, rayDir.z));
-        cout<<"Check if intersects"<<endl;
         if(boundingBox.intersect(ray, -100, 100)){
-            cout << "\t Box intersects" << endl;
-            cout<<"\tDistance to the box is :"<<checkBoxDistanceFromCenter(boundingBox, ray)<<endl;
-            helperSubLevelBoundingBoxes(boundingBox, 0, ray);
+//            cout << "\t Box intersects" << endl;
+//            cout<<"\t Distance to the box is :"<<checkBoxDistanceFromCenter(boundingBox, ray)<<endl;
+            helperSubLevelBoundingBoxes(boundingBox, 1, ray);
         }else
-            cout<<"\tBox does not intersects"<<endl;
+            cout<<"";
+//            cout<<"\tBox does not intersects"<<endl;
         
     }
     isDragged = false;
+    endTime = ofGetSystemTimeMicros();
+    
+    
+    cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
 }
 
 void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray){
     //check the level, if it is more than the depth of what we are expecting then leave it
-    if(currentLevel>4)
+    if(currentLevel>maxLevel && maxLevel>0)
         return;
     
     //Create vector of sub boxes for the current level
@@ -383,7 +386,6 @@ void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ra
     subDivideBox8(b, boxList);
     subLevelBoxes.push_back(boxList);
     int index = indexOfClosestBoundingBox(boxList, ray);
-    subLevelBoxIndexList.push_back(index);
     helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray);
     
 }
