@@ -34,6 +34,7 @@
 void ofApp::setup(){
     
     bWireframe = false;
+    bPointSelectedNotWithMesh = false;
     bDisplayPoints = false;
     bAltKeyDown = false;
     bCtrlKeyDown = false;
@@ -117,7 +118,14 @@ void ofApp::draw(){
         ofSetColor(ofColor::blue);
         ofDrawSphere(selectedPoint, .1);
     }
-    
+/*
+ Professors Code to Draw the point for the given mesh. Uncomment this to check the draw functionality.
+ 
+    if (bPointSelectedNotWithMesh) {
+        ofSetColor(ofColor::green);
+        ofDrawSphere(selectedPointWithoutMesh, .1);
+    }
+*/
     ofNoFill();
     ofSetColor(ofColor::white);
     drawBox(boundingBox);
@@ -136,7 +144,7 @@ void ofApp::draw(){
     ofPopMatrix();
     cam.end();
     uint64_t et = ofGetSystemTimeMicros();
-//    cout<<"Time elapsed in entire draw function : "<<et-st<<endl;
+    cout<<"Time elapsed in entire draw function : "<<et-st<<endl;
 }
 
 //
@@ -350,8 +358,12 @@ void ofApp::mouseDragged(int x, int y, int button) {
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
     if(!isDragged){
+        
+        bPointSelected = false;
+        bPointSelectedNotWithMesh=false;
         subLevelBoxes.clear();
         sublevelMeshes.clear();
+        
         ofVec3f mouse(mouseX, mouseY);
         ofVec3f rayPoint = cam.screenToWorld(mouse);
         ofVec3f rayDir = rayPoint - cam.getPosition();
@@ -360,15 +372,12 @@ void ofApp::mouseReleased(int x, int y, int button) {
                       Vector3(rayDir.x, rayDir.y, rayDir.z));
         if(boundingBox.intersect(ray, -100, 100)){
             helperSubLevelBoundingBoxes(boundingBox, 1, ray, meshDataForMars);
-        }else{
-            bPointSelected = false;
+            doPointSelection();
         }
     }
     isDragged = false;
     endTime = ofGetSystemTimeMicros();
-    
-    
-//    cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
+    cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
 }
 
 
@@ -376,7 +385,6 @@ void ofApp::mouseReleased(int x, int y, int button) {
 void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray, ofMesh &mesh){
     //check the level, if it is more than the depth of what we are expecting then leave it
     if((currentLevel>maxLevel && maxLevel>0)||mesh.getNumVertices()<2){
-        setSelectedPoint(b);
         return;
     }
 //    cout<<currentLevel<<endl;
@@ -388,10 +396,13 @@ void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ra
     TreeNode currentTree = sublevelMeshes[sublevelMeshes.size()-1];
     int index = indexOfClosestBoundingBox(boxList, ray, currentTree);
     if(index<0){
-        setSelectedPoint(b);
+//        setSelectedPoint(b);
         return;//this means no more sub boxes could be divided in the reigon.
     }
     helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray, currentTree.verticesOfBoxes[index]);
+    if(!bPointSelected){
+        doPointSelectionWithMesh(currentTree.verticesOfBoxes[index]);
+    }
 }
 //IF the final layer is found then this will draw the sphere around the last box.
 void ofApp::setSelectedPoint(const Box box){
@@ -448,15 +459,8 @@ int ofApp::indexOfClosestBoundingBox(vector<Box> &boxList, Ray &ray, const TreeN
     return indexOfMinDistaceBox;
 }
 
-
-//
-//  Select Target Point on Terrain by comparing distance of mouse to
-//  vertice points projected onto screenspace.
-//  if a point is selected, return true, else return false;
-//
-bool ofApp::doPointSelection() {
+void ofApp::doPointSelectionWithMesh(const ofMesh mesh) {
     
-    ofMesh mesh = mars.getMesh(0);
     int n = mesh.getNumVertices();
     float nearestDistance = 0;
     int nearestIndex = 0;
@@ -499,7 +503,59 @@ bool ofApp::doPointSelection() {
             }
         }
     }
-    return bPointSelected;
+}
+
+//
+//  Select Target Point on Terrain by comparing distance of mouse to
+//  vertice points projected onto screenspace.
+//  if a point is selected, return true, else return false;
+//
+bool ofApp::doPointSelection() {
+    
+    ofMesh mesh = mars.getMesh(0);
+    int n = mesh.getNumVertices();
+    float nearestDistance = 0;
+    int nearestIndex = 0;
+    
+    bPointSelectedNotWithMesh = false;
+    
+    ofVec2f mouse(mouseX, mouseY);
+    vector<ofVec3f> selection;
+    
+    // We check through the mesh vertices to see which ones
+    // are "close" to the mouse point in screen space.  If we find
+    // points that are close, we store them in a vector (dynamic array)
+    //
+    for (int i = 0; i < n; i++) {
+        ofVec3f vert = mesh.getVertex(i);
+        ofVec3f posScreen = cam.worldToScreen(vert);
+        float distance = posScreen.distance(mouse);
+        if (distance < selectionRange) {
+            selection.push_back(vert);
+            bPointSelectedNotWithMesh = true;
+        }
+    }
+    
+    //  if we found selected points, we need to determine which
+    //  one is closest to the eye (camera). That one is our selected target.
+    //
+    if (bPointSelected) {
+        float distance = 0;
+        for (int i = 0; i < selection.size(); i++) {
+            ofVec3f point =  cam.worldToCamera(selection[i]);
+            
+            // In camera space, the camera is at (0,0,0), so distance from
+            // the camera is simply the length of the point vector
+            //
+            float curDist = point.length();
+            
+            if (i == 0 || curDist < distance) {
+                distance = curDist;
+                selectedPointWithoutMesh = selection[i];
+            }
+        }
+    }
+    return bPointSelectedNotWithMesh;
 }
 
 // Set the camera to use the selected point as it's new target

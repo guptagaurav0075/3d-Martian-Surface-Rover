@@ -64,11 +64,14 @@ public:
     bool bWireframe;
     bool bDisplayPoints;
     bool bPointSelected;
+    bool bPointSelectedNotWithMesh;
+    ofVec3f selectedPointWithoutMesh;
     
     bool bRoverLoaded;
     bool bTerrainSelected;
     bool isDragged;
     
+    void doPointSelectionWithMesh(const ofMesh mesh);
     ofMesh meshDataForMars;
     
     ofVec3f selectedPoint;
