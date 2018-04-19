@@ -54,8 +54,8 @@ void ofApp::setup(){
     
     mars.loadModel("geo/mars-low-v2.obj");
     mars.setScaleNormalization(false);
-    
-    boundingBox = meshBounds(mars.getMesh(0));
+    meshDataForMars = mars.getMesh(0);
+    boundingBox = meshBounds(meshDataForMars);
     isDragged = false;
     
     
@@ -354,6 +354,7 @@ void ofApp::mouseReleased(int x, int y, int button) {
     
     if(!isDragged){
         subLevelBoxes.clear();
+        sublevelMeshes.clear();
         ofVec3f mouse(mouseX, mouseY);
         ofVec3f rayPoint = cam.screenToWorld(mouse);
         ofVec3f rayDir = rayPoint - cam.getPosition();
@@ -361,13 +362,8 @@ void ofApp::mouseReleased(int x, int y, int button) {
         Ray ray = Ray(Vector3(rayPoint.x, rayPoint.y, rayPoint.z),
                       Vector3(rayDir.x, rayDir.y, rayDir.z));
         if(boundingBox.intersect(ray, -100, 100)){
-//            cout << "\t Box intersects" << endl;
-//            cout<<"\t Distance to the box is :"<<checkBoxDistanceFromCenter(boundingBox, ray)<<endl;
-            helperSubLevelBoundingBoxes(boundingBox, 1, ray);
-        }else
-            cout<<"";
-//            cout<<"\tBox does not intersects"<<endl;
-        
+            helperSubLevelBoundingBoxes(boundingBox, 1, ray, meshDataForMars);
+        }
     }
     isDragged = false;
     endTime = ofGetSystemTimeMicros();
@@ -376,7 +372,9 @@ void ofApp::mouseReleased(int x, int y, int button) {
     cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
 }
 
-void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray){
+
+//code helps in creating the sub level bounding boxes
+void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray, ofMesh &mesh){
     //check the level, if it is more than the depth of what we are expecting then leave it
     if(currentLevel>maxLevel && maxLevel>0)
         return;
@@ -385,9 +383,34 @@ void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ra
     vector<Box> boxList;
     subDivideBox8(b, boxList);
     subLevelBoxes.push_back(boxList);
-    int index = indexOfClosestBoundingBox(boxList, ray);
-    helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray);
+    buildTreeNodeForBoxes(boxList, mesh);
+    if(sublevelMeshes.size()<1)
+        return;
+    TreeNode currentTree = sublevelMeshes[subLevelBoxes.size()-1];
+    int index = indexOfClosestBoundingBox(boxList, ray, currentTree);
+    helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray, currentTree.verticesOfBoxes[index]);
+}
+
+void ofApp::buildTreeNodeForBoxes(vector<Box> &boxes, ofMesh allVertices){
+    TreeNode tree;
     
+    for (int i=0; i<boxes.size(); i++) {
+        ofMesh mesh;
+        fetchMeshDataForBox(boxes[i], mesh, allVertices);
+        tree.add(mesh);
+    }
+    sublevelMeshes.push_back(tree);
+}
+
+void ofApp::fetchMeshDataForBox(Box box, ofMesh &mesh, ofMesh allVertices){
+    Vector3 min = box.parameters[0];
+    Vector3 max = box.parameters[1];
+    int n = allVertices.getNumVertices();
+    for (int i = 0; i < n; i++) {
+        ofVec3f v = allVertices.getVertex(i);
+        if ((v.x >= min.x() && v.x<=max.x()) && (v.y >= min.y() && v.y<=max.y()) && (v.z >= min.z() && v.z<=max.z()))
+            mesh.addVertex(v);
+    }
 }
 
 // Find the bounding box that is closest for the given ray which intersects at a closest distance
@@ -395,11 +418,12 @@ void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ra
 // if any box intersect the given ray, then the distance is checed with the current maximum distance
 // and smaller of the two distance is chosen as closestDistance.
 
-int ofApp::indexOfClosestBoundingBox(vector<Box> &boxList, Ray &ray){
+int ofApp::indexOfClosestBoundingBox(vector<Box> &boxList, Ray &ray, const TreeNode tree){
+    vector<ofMesh> verticeList = tree.verticesOfBoxes;
     float closestBoxDistance = numeric_limits<float>::max();
     int indexOfMinDistaceBox = -1; // initially set to 1, which depicts that no index of the box is found;
     for (int i=0; i<boxList.size(); i++) {
-        if(boxList[i].intersect(ray, -100, 100)){
+        if(boxList[i].intersect(ray, -100, 100) && verticeList[i].getNumVertices()>0){
             float tempDistance = checkBoxDistanceFromCenter(boxList[i], ray);
             if(tempDistance<closestBoxDistance){
                 closestBoxDistance = tempDistance;

@@ -5,6 +5,17 @@
 #include "box.h"
 #include "ray.h"
 
+//This will hold the mesh data for every region given the level
+class TreeNode{
+    public:
+    TreeNode();
+    //Since in octree there will be
+    vector<ofMesh> verticesOfBoxes;
+    void add(ofMesh mesh){
+        verticesOfBoxes.push_back(mesh);
+    }
+};
+
 class ofApp : public ofBaseApp{
     
 public:
@@ -36,16 +47,17 @@ public:
     void subDivideBox8(const Box &b, vector<Box> & boxList);
     bool mouseIntersectPlane(ofVec3f planePoint, ofVec3f planeNorm, ofVec3f &point);
 
-    void helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray &ray);
-    int indexOfClosestBoundingBox(vector<Box> & boxList, Ray &ray);
+    void helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray &ray, ofMesh &mesh);
+    int indexOfClosestBoundingBox(vector<Box> & boxList, Ray &ray, const TreeNode tree);
     float checkBoxDistanceFromCenter(const Box & b, Ray &ray);
-    
-    
+    void buildTreeNodeForBoxes(vector<Box> &boxes, ofMesh verticesList);
+    void fetchMeshDataForBox(Box box,ofMesh &mesh, ofMesh verticesList);
     ofEasyCam cam;
     ofxAssimpModelLoader mars, rover;
     ofLight light;
     Box boundingBox;
     vector<vector<Box>> subLevelBoxes;
+    vector<TreeNode> sublevelMeshes;
     vector<ofColor> colors;
     bool bAltKeyDown;
     bool bCtrlKeyDown;
@@ -57,12 +69,12 @@ public:
     bool bTerrainSelected;
     bool isDragged;
     
+    ofMesh meshDataForMars;
+    
     ofVec3f selectedPoint;
     ofVec3f intersectPoint;
     
     int maxLevel = 20;
     uint64_t startTime, endTime;
     const float selectionRange = 4.0;
-    
-    
 };
