@@ -8,7 +8,6 @@
 //This will hold the mesh data for every region given the level
 class TreeNode{
     public:
-    TreeNode();
     //Since in octree there will be
     vector<ofMesh> verticesOfBoxes;
     void add(ofMesh mesh){
@@ -52,6 +51,7 @@ public:
     float checkBoxDistanceFromCenter(const Box & b, Ray &ray);
     void buildTreeNodeForBoxes(vector<Box> &boxes, ofMesh verticesList);
     void fetchMeshDataForBox(Box box,ofMesh &mesh, ofMesh verticesList);
+    void setSelectedPoint(const Box box);
     ofEasyCam cam;
     ofxAssimpModelLoader mars, rover;
     ofLight light;
@@ -74,7 +74,7 @@ public:
     ofVec3f selectedPoint;
     ofVec3f intersectPoint;
     
-    int maxLevel = 20;
+    int maxLevel = 10;
     uint64_t startTime, endTime;
     const float selectionRange = 4.0;
 };

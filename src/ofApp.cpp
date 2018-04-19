@@ -136,7 +136,7 @@ void ofApp::draw(){
     ofPopMatrix();
     cam.end();
     uint64_t et = ofGetSystemTimeMicros();
-    cout<<"Time elapsed in entire draw function : "<<et-st<<endl;
+//    cout<<"Time elapsed in entire draw function : "<<et-st<<endl;
 }
 
 //
@@ -349,9 +349,6 @@ void ofApp::mouseDragged(int x, int y, int button) {
 
 //--------------------------------------------------------------
 void ofApp::mouseReleased(int x, int y, int button) {
-    
-    
-    
     if(!isDragged){
         subLevelBoxes.clear();
         sublevelMeshes.clear();
@@ -363,34 +360,50 @@ void ofApp::mouseReleased(int x, int y, int button) {
                       Vector3(rayDir.x, rayDir.y, rayDir.z));
         if(boundingBox.intersect(ray, -100, 100)){
             helperSubLevelBoundingBoxes(boundingBox, 1, ray, meshDataForMars);
+        }else{
+            bPointSelected = false;
         }
     }
     isDragged = false;
     endTime = ofGetSystemTimeMicros();
     
     
-    cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
+//    cout<<endl<<endl<<"Time Elapsed to find all the sub level bounding boxes : "<<endTime-startTime<<endl<<endl;
 }
 
 
 //code helps in creating the sub level bounding boxes
 void ofApp::helperSubLevelBoundingBoxes(const Box &b, int currentLevel, Ray & ray, ofMesh &mesh){
     //check the level, if it is more than the depth of what we are expecting then leave it
-    if(currentLevel>maxLevel && maxLevel>0)
+    if((currentLevel>maxLevel && maxLevel>0)||mesh.getNumVertices()<2){
+        setSelectedPoint(b);
         return;
-    
+    }
+//    cout<<currentLevel<<endl;
     //Create vector of sub boxes for the current level
     vector<Box> boxList;
     subDivideBox8(b, boxList);
     subLevelBoxes.push_back(boxList);
     buildTreeNodeForBoxes(boxList, mesh);
-    if(sublevelMeshes.size()<1)
-        return;
-    TreeNode currentTree = sublevelMeshes[subLevelBoxes.size()-1];
+    TreeNode currentTree = sublevelMeshes[sublevelMeshes.size()-1];
     int index = indexOfClosestBoundingBox(boxList, ray, currentTree);
+    if(index<0){
+        setSelectedPoint(b);
+        return;//this means no more sub boxes could be divided in the reigon.
+    }
     helperSubLevelBoundingBoxes(boxList[index], currentLevel+1, ray, currentTree.verticesOfBoxes[index]);
 }
+//IF the final layer is found then this will draw the sphere around the last box.
+void ofApp::setSelectedPoint(const Box box){
+    Vector3 min = box.parameters[0];
+    Vector3 max = box.parameters[1];
+    Vector3 size = max - min;
+    Vector3 center = size / 2 + min;
+    bPointSelected = true;
+    selectedPoint.set(center.x(), center.y(), center.z());
+}
 
+//consturcts the sublevel vertice division for a given box
 void ofApp::buildTreeNodeForBoxes(vector<Box> &boxes, ofMesh allVertices){
     TreeNode tree;
     
@@ -402,6 +415,7 @@ void ofApp::buildTreeNodeForBoxes(vector<Box> &boxes, ofMesh allVertices){
     sublevelMeshes.push_back(tree);
 }
 
+//For each individual box in the octree find the vertices for a given box.
 void ofApp::fetchMeshDataForBox(Box box, ofMesh &mesh, ofMesh allVertices){
     Vector3 min = box.parameters[0];
     Vector3 max = box.parameters[1];
@@ -433,8 +447,6 @@ int ofApp::indexOfClosestBoundingBox(vector<Box> &boxList, Ray &ray, const TreeN
     }
     return indexOfMinDistaceBox;
 }
-
-
 
 
 //

@@ -75,7 +75,6 @@ class Vector3 {
     float distance(Vector3 other){
         return sqrt(((d[0] -other.d[0])*(d[0] -other.d[0]))+((d[1] -other.d[1])*(d[1] -other.d[1]))+((d[2] -other.d[2])*(d[2] -other.d[2])));
     }
-  
   private:
     float d[3];
 };
